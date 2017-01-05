@@ -1,0 +1,234 @@
+<script>
+	var xhr=new XMLHttpRequest();
+	function send_frame(frame) {
+		xhr.open('GET','http://192.168.4.1/cc?pixels='+frame,true);
+		xhr.send();
+	}
+	function send_brightness(brightness) {
+		xhr.open('GET','http://192.168.4.1/cc?brightness='+brightness,true);
+		xhr.send();
+	}
+
+
+	var heart = '000020000020000020000020000020000020ff0000000020ff0000000020ff0000ff0000ff0000ff0000ff0000ff0000ff0000ff0000ff0000ff0000000020ff0000ff0000ff0000000020000020000020ff0000000020000020000020000020000020000020000020'
+	var a_blue = '0000000000ff0000ff0000ff0000000000ff0000000000000000000000ff0000ff0000000000000000000000ff0000ff0000ff0000ff0000ff0000ff0000ff0000000000000000000000ff0000ff0000000000000000000000ff0000ff0000000000000000000000ff'
+	var a_green = '00000000ff0000ff0000ff0000000000ff0000000000000000000000ff0000ff0000000000000000000000ff0000ff0000ff0000ff0000ff0000ff0000ff0000000000000000000000ff0000ff0000000000000000000000ff0000ff0000000000000000000000ff00'
+	var a_blue_blue = '00ffff0000ff0000ff0000ff00ffff0000ff00ffff00ffff00ffff0000ff0000ff00ffff00ffff00ffff0000ff0000ff0000ff0000ff0000ff0000ff0000ff00ffff00ffff00ffff0000ff0000ff00ffff00ffff00ffff0000ff0000ff00ffff00ffff00ffff0000ff'
+	var black = '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+	var goal = heart
+
+
+	var alphabet = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f']
+
+	function char_to_num(some_char) {
+		return alphabet.indexOf(some_char)
+	}
+	function random_char() {
+		return alphabet[Math.floor(Math.random()*alphabet.length)];
+	}
+	function mutate_char(some_char) {
+		var index = char_to_num(some_char);
+		if(index == 0) {
+			return alphabet[1];
+		}
+		else if(index == alphabet.length-1) {
+			return alphabet[alphabet.length-2];
+		}
+		else {
+			if(Math.random() < 0.5) {
+				return alphabet[index-1];
+			}
+			else {
+				return alphabet[index+1];
+			}
+		}
+	}
+	function smart_mutate_char(some_char, goal_char) {
+		var index = char_to_num(some_char);
+		var goal_index = char_to_num(goal_char);
+
+		if(index == goal_index) {
+			return some_char;
+		}
+		else if(index < goal_index) {
+			return alphabet[index+1];
+		}
+		else {
+			return alphabet[index-1];
+		}
+	}
+
+	function random_frame() {
+		var frame = '';
+		for(var j = 0; j < goal.length; j++) {
+			frame += random_char();
+		}
+		return frame;
+	}
+
+
+	function make_population(seeds, num_kids_per_seed) {
+		// var mutation_prob = 8.0/16;
+		var mutation_prob = 1.0;
+
+		var next_generation = []
+		
+		//for each seed
+		for(var k = 0; k < seeds.length; k++) {
+			var seed = seeds[k];
+
+			//make it have a kid
+			next_generation.push(seed);
+			for(var j = 0; j < num_kids_per_seed; j++) {
+				
+				//mutate it
+				var kid = '';
+				for (var i = 0; i < seed.length; i++) {
+					var char = seed[i];
+					
+					// //fade in
+					// char = smart_mutate_char(char, goal[i]);
+					
+					// //mutate randomly
+					// if(Math.random() < mutation_prob) {
+					// 	char = mutate_char(char);
+					// }
+
+					// //mutate with perturbations
+					// if(Math.random() < mutation_prob) {
+					// 	char = mutate_char(char);
+					// }
+
+					// //mutation probability is function of distance to goal
+					// var char_dist = Math.abs(char_to_num(char) - char_to_num(goal[i]))
+					// if(Math.random() < (1.0*char_dist/15)*(1.0*char_dist/15)) {
+					// 	char = mutate_char(char);
+					// }
+
+					// //mutation probability is function of distance to goal
+					// var char_dist = Math.abs(char_to_num(char) - char_to_num(goal[i]))
+					// if(Math.random() < (1.0*char_dist/15) + (0.01)) {
+					// 	char = random_char();
+					// }
+
+					// //only mutate if different than goal
+					// if(seed[i] != goal[i] && Math.random() < mutation_prob) {
+					// 	char = random_char();
+					// }
+
+					//only mutate with perturbations if different than goal
+					if(seed[i] != goal[i] && Math.random() < mutation_prob) {
+						char = mutate_char(char);
+					}
+
+
+					// //hybrid of the two
+					// if(seed[i] != goal[i]) {
+					// 	var char_dist = Math.abs(char_to_num(char) - char_to_num(goal[i]))
+					// 	if(Math.random() < (1.0*char_dist/15) + (0.01)) {
+					// 		char = random_char();
+					// 	}
+					// }
+
+					kid += char;
+				}
+				next_generation.push(kid)
+			}
+
+		}
+
+		return next_generation;
+	}
+
+	function frame_fitness(frame) {
+		var total_distance = 0;
+		for (var i = 0; i < frame.length; i++) {
+			var char_dist = Math.abs(char_to_num(frame[i]) - char_to_num(goal[i]))
+			total_distance += char_dist;
+		}
+		return total_distance;
+
+		// var num_wrong = 0;
+		// for (var i = 0; i < frame.length; i++) {
+		// 	if(frame[i] != goal[i]) {
+		// 		num_wrong += 1;
+		// 	}
+		// }
+		// return num_wrong;
+	}
+
+	function get_best(population, num_best) {
+		population.sort(function(a, b) {
+			return frame_fitness(a) - frame_fitness(b);
+		});
+		return population.slice(0, num_best);
+	}
+
+
+
+	var num_best = 5;
+	var num_kids_per_seed = 5;
+	var seeds = []
+	for (var i = 0; i < num_best; i++) {
+		seeds.push(random_frame());
+	}
+	var population = make_population(seeds, num_kids_per_seed)
+	// for (var i = 0; i < seeds.length; i++) {
+	// 	document.write('seed(' + seeds[i] + ')<br>\n');
+	// }
+	// for (var i = 0; i < population.length; i++) {
+	// 	document.write('pop(' + population[i] + ')<br>\n');
+	// }
+
+
+	frames = []
+
+	for (var i = 0; i < 150; i++) {
+		seeds = get_best(population, num_best);
+		population = make_population(seeds, num_kids_per_seed);
+		document.write('best(' + seeds[0] + ')<br>\n');
+		frames.push(seeds[0]);
+	}
+
+	goal = a_green;
+	for (var i = 0; i < 150; i++) {
+		seeds = get_best(population, num_best);
+		population = make_population(seeds, num_kids_per_seed);
+		document.write('best(' + seeds[0] + ')<br>\n');
+		frames.push(seeds[0]);
+	}
+
+
+	var frame_index = 0;
+	function animate() {
+		send_frame(frames[frame_index]);
+		frame_index = (frame_index+1) % frames.length;
+	}
+	send_brightness(48);
+ 	setInterval(animate, 100);
+
+
+
+
+	// // define static frames
+	// var frame_index = 0;
+	// function animate() {
+
+	// 	// send_frame(random_frame());
+	// 	send_frame(seeds[0]);
+	// 	// for (var i = 0; i < population.length; i++) {
+	// 	// 	frame = population[i]
+	// 	// 	send_frame(frame);
+	// 	// }
+	// 	seeds = get_best(population, num_best);
+	// 	population = make_population(seeds, num_kids)
+	// 	// for (var i = 0; i < population.length; i++) {
+	// 	// 	document.write('(' + population[i] + ')<br>\n');
+	// 	// }
+
+		
+	// }
+	// send_brightness(48);
+	// 	// setInterval(animate, 500);	// 200ms interval
+	// 	setInterval(animate, 100);	// 200ms interval
+</script>
